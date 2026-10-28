@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>只用 1 张随手拍，在 Claude Code 里做出 15 秒抖音带货视频（配音 + 字幕花字 + BGM，本地出片）</title>
+<meta name="description" content=" 项目地址：xianyu110/ecommerce-video-skills （MIT，12 个电商短视频 Agent Skills） 本文所有成片、截图都是在一台普通 Linux 机器上用仓库脚本实测跑出来的，命令可以直接复制。 先看结果。左边是输入，一张 800×800 的桌面随手拍；右边是输出，一条 14.5 秒">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f5f0;--card:#fff;--text:#1a1a1a;--muted:#5c5c5c;--accent:#1a73e8;--border:#e6e2d8;--code-bg:#f0eee8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-size:17px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+article{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem 1.75rem 2.5rem;box-shadow:0 8px 30px rgba(0,0,0,.04)}
+h1{font-family:"Noto Serif SC",serif;font-size:clamp(1.55rem,4vw,2rem);line-height:1.4;margin:0 0 1.25rem;font-weight:700}
+h2{font-family:"Noto Serif SC",serif;font-size:1.35rem;margin:2.25rem 0 .9rem;padding-top:.5rem;border-top:1px solid var(--border);font-weight:700}
+h2:first-of-type{border-top:none;padding-top:0}h3{font-size:1.1rem;margin:1.5rem 0 .6rem}
+p{margin:.9rem 0}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+ul,ol{padding-left:1.35rem;margin:.8rem 0}li{margin:.35rem 0}strong{font-weight:700}
+img{display:block;max-width:100%;height:auto;margin:1.1rem auto .35rem;border-radius:10px;border:1px solid var(--border);background:#fafafa}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem;overflow-x:auto;font-size:.88rem;line-height:1.55}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+pre code{background:none;padding:0}
+blockquote{margin:1rem 0;padding:.2rem 0 .2rem 1rem;border-left:3px solid var(--accent);color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.95rem}
+th,td{border:1px solid var(--border);padding:.55rem .7rem;text-align:left;vertical-align:top}th{background:#f3f1eb}
+.meta{color:var(--muted);font-size:.92rem;margin-bottom:1.5rem}
+.pages-banner{margin:0 0 1.25rem;padding:.75rem 1rem;background:#eef5ff;border:1px solid #d0e2ff;border-radius:10px;font-size:.95rem}
+footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--muted);font-size:.88rem}
+</style></head><body><div class="wrap"><article>
+<div class="pages-banner">在线阅读（GitHub Pages）：<a href="https://maynor996.github.io/claude-code-douyin-video/">https://maynor996.github.io/claude-code-douyin-video/</a></div>
+<h1>只用 1 张随手拍，在 Claude Code 里做出 15 秒抖音带货视频（配音 + 字幕花字 + BGM，本地出片）</h1>
+<div class="meta">原文：<a href="https://blog.csdn.net/xianyu120/article/details/167125686">https://blog.csdn.net/xianyu120/article/details/167125686</a></div>
+<blockquote>
+<p>项目地址：<strong><a href="https://github.com/xianyu110/ecommerce-video-skills?utm_source=csdn&amp;utm_medium=article&amp;utm_campaign=ecommerce-video-skills&amp;utm_content=top">xianyu110/ecommerce-video-skills</a></strong> （MIT，12 个电商短视频 Agent Skills）</p>
+<p>本文所有成片、截图都是在一台普通 Linux 机器上用仓库脚本实测跑出来的，命令可以直接复制。</p>
+</blockquote>
+<p>先看结果。左边是输入，一张 800×800 的桌面随手拍；右边是输出，一条 14.5 秒的 9:16 竖屏带货视频：</p>
+<p><img alt="1 张随手拍 → 15 秒 9:16 带货视频" src="imgs/01.jpeg" /></p>
+<p>动图预览（GIF 压缩过，原片是 1080×1920 / 30fps，[点这里下载 MP4](&lt;</p>
+<p><img alt="成片动图" src="imgs/02.gif" /></p>
+<p>整条视频里只有一张素材图：开场的推近、中段的模糊背景加小画面、顶部竹木盖的下移镜头，都是同一张图用不同的 <code>motion</code> / <code>fit</code> 参数做出来的；结尾卡也是脚本用这张图自动排的版。</p>
+<h3>一、为什么要用「Skill」做带货视频</h3>
+<p>让大模型写带货脚本不难，难在后面那几步：</p>
+<ol>
+<li><strong>它写完分镜，你还得自己开剪映一镜一镜拖</strong> ；</li>
+<li>配音和字幕要对齐，改一句台词就得重新对一遍时间轴；</li>
+<li>抖音 9:16、小红书 3:4、淘宝主图视频 1:1，每个平台再导一遍；</li>
+<li>口播里一不小心就写出「最」「第一」「100%」这类广告法风险词。</li>
+</ol>
+<p><code>ecommerce-video-skills</code> 的做法是把这条流水线拆成 12 个 Agent Skill（一个文件夹一个 <code>SKILL.md</code>，可选附带脚本），其中「剪辑」这一步交给仓库里的 Python + ffmpeg 脚本真正执行。agent 负责「想」（钩子、分镜、台词），脚本负责「做」（配音、镜头、字幕、混音、导出）。</p>
+<h3>二、安装（2 分钟）</h3>
+<pre><code># 方式一：skills CLI 一行装
+npx skills add xianyu110/ecommerce-video-skills
+
+# 方式二：Claude Code 插件市场
+/plugin marketplace add xianyu110/ecommerce-video-skills
+
+# 方式三：手动复制（Codex / Cursor 同理）
+git clone https://github.com/xianyu110/ecommerce-video-skills.git &amp;&amp; cd ecommerce-video-skills
+mkdir -p ~/.claude/skills &amp;&amp; cp -r skills/* ~/.claude/skills/   # Claude Code
+mkdir -p ~/.codex/skills  &amp;&amp; cp -r skills/* ~/.codex/skills/    # Codex
+pip install -r requirements.txt   # pillow / numpy / edge-tts；另需 ffmpeg（带 libass）和中文字体
+</code></pre>
+<p>每个 skill 文件夹自带它需要的脚本，互不依赖，只复制用得到的也行。</p>
+<h3>三、Step 1：让 agent 写 3 秒钩子</h3>
+<p>在 Claude Code 或 Codex 里直接说：</p>
+<pre><code>用 hook-3s-script 给这个保温杯写 8 个前三秒开场，标出推荐 Top 3。
+真实卖点只有：750ml、竹木盖带提手、哑光鼠尾草绿。
+</code></pre>
+<p><code>hook-3s-script</code> 里写死了几条规则，agent 会照着执行：</p>
+<ul>
+<li>9 种钩子类型（痛点提问、反差、结果先行、数字、场景代入、错误示范、对比、第一人称、悬念），每条用不同类型，方便 A/B；</li>
+<li>每条 <strong>≤18 个汉字</strong> （中文语速约 4–5 字/秒，3 秒说完），花字 ≤10 字；</li>
+<li>第一帧必须是商品或痛点画面，不放 logo 片头；</li>
+<li>禁用「最、第一、顶级、国家级、100%、根治」等绝对化用语，<strong>只能用你确认过的卖点</strong> 。</li>
+</ul>
+<p>我这里只给了 3 个能从照片上直接看到的卖点（瓶身印着 750ml、竹木盖、提手、颜色），所以后面的口播里没有任何「保冷 24 小时」之类没测过的说法。最后选的开场是痛点提问型：「通勤带水，杯子总是又重又丑？」</p>
+<h3>四、Step 2：15 秒分镜 → storyboard.json</h3>
+<p>接着说：</p>
+<pre><code>用 selling-point-storyboard 按 ./assets/photo.webp 做一条 15 秒抖音分镜，只有这一张图，输出 storyboard.json
+</code></pre>
+<p>skill 里的 15 秒结构是：<strong>钩子(1) → 产品亮相(1) → 卖点×2–3 → 行动号召(1)，共 5–6 镜</strong> ，并且要求「一镜一信息」、总台词字数 ≈ 时长 × 4.5。素材只有一张图时，skill 给的办法是「同一张图用不同 motion / fit 做两镜」。按这个模板整理出来的分镜如下（完整文件就是本文附带的 <code>storyboard.json</code>）：</p>
+<pre><code>{
+  "voice": "zh-CN-YunxiNeural", "rate": "+12%", "bgm": "auto", "tag": "AURA · 演示",
+  "shots": [
+    {"image": "assets/photo.webp", "fit": "cover", "motion": "punch", "transition": "slideup",
+     "line": "通勤带水，杯子总是又重又丑？", "sub": "通勤带水|杯子又**重**又丑？", "title": "通勤水杯怎么选？"},
+    {"image": "assets/photo.webp", "fit": "blur", "motion": "zoom_in", "transition": "fade",
+     "line": "试试这只 AURA，750 毫升容量。", "sub": "试试这只 **AURA**|750ml 容量"},
+    {"image": "assets/photo.webp", "fit": "cover", "motion": "pan_down", "transition": "slideleft",
+     "line": "竹木盖配黑色提手，单手就能拎走。", "sub": "竹木盖 + 提手|**单手就能拎走**", "title": "竹木盖"},
+    {"image": "assets/photo.webp", "fit": "blur", "motion": "zoom_out", "transition": "fade",
+     "line": "哑光鼠尾草绿，放在桌上也好看。", "sub": "哑光**鼠尾草绿**|放桌上也好看"},
+    {"image": "assets/end-card.png", "motion": "zoom_in", "min": 3.0,
+     "line": "想要同款，点下方链接看看。", "sub": "", "cta": "点击下方链接 ›"}
+  ]
+}
+</code></pre>
+<p>几个字段说明一下：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>line</code></td>
+<td>配音文本。镜头时长 = 配音时长 + 0.15s 前导 + 留白，<strong>不用手动对时间轴</strong></td>
+</tr>
+<tr>
+<td><code>sub</code></td>
+<td>字幕；<code>**词**</code> 是关键词高亮（黄色），<code>|</code> 是分行；<code>""</code> 表示这镜不出字幕</td>
+</tr>
+<tr>
+<td><code>title</code> / <code>cta</code></td>
+<td>弹出花字 / 底部行动号召按钮</td>
+</tr>
+<tr>
+<td><code>motion</code></td>
+<td><code>punch</code>（0.35 秒快速推近，开场钩子专用）、<code>zoom_in</code>、<code>zoom_out</code>、<code>pan_*</code>、<code>static</code></td>
+</tr>
+<tr>
+<td><code>fit</code></td>
+<td><code>cover</code> 裁满；<code>blur</code> 模糊背景 + 完整画面（方图放进竖屏时避免裁掉商品）</td>
+</tr>
+</tbody>
+</table>
+<p>结尾卡用仓库里的 <code>make_cards.py</code> 生成，文字是 PIL 本地渲染，中文不会糊：</p>
+<pre><code>python scripts/make_cards.py --image assets/photo.webp --name "AURA 保温杯" \
+  --points "750ml 容量|竹木盖 + 提手|哑光鼠尾草绿" -o assets/end-card.png
+</code></pre>
+<h3>五、Step 3：一条命令出片</h3>
+<pre><code>python scripts/assemble.py storyboard.json -o out/demo.mp4
+</code></pre>
+<p><img alt="渲染日志与 ffprobe / 响度实测" src="imgs/03.png" /></p>
+<p>脚本分 5 步走：edge-tts 逐句配音 → 每镜 Ken Burns 渲染 → xfade 转场 → 配音 + BGM 混音 → 字幕烧录并封装。我这台机器上总共 27.6 秒跑完。用 ffprobe 和 ebur128 复查成片：</p>
+<ul>
+<li>H.264 1080×1920，30fps；AAC 48kHz；时长 14.57 秒</li>
+<li>整体响度 <strong>-14.5 LUFS</strong> （脚本做了两遍 loudnorm，目标约 -14 LUFS）</li>
+<li>同时输出 <code>out/demo.srt</code>，8 条字幕，可以单独上传给平台</li>
+</ul>
+<p>几个实现细节，是我觉得这个仓库比「提示词合集」靠谱的地方：</p>
+<ul>
+<li><strong>Ken Burns 用逐帧 scale + crop</strong> ，比 ffmpeg 自带的 zoompan 抖动小；</li>
+<li><strong>转场不吃配音</strong> ：每镜多渲染半个转场长度，配音按镜头起点对齐；</li>
+<li><strong>BGM 自动闪避</strong> ：<code>bgm: "auto"</code> 是 <code>make_bgm.py</code> 实时合成的免版权音乐，有人声时再压 10dB；</li>
+<li>想先看节奏不等配音，可以 <code>--tts none</code> 按字数估时离线预览。</li>
+</ul>
+<p>抽 6 帧看一下（左上角黄色贴纸是 <code>tag</code> 字段，提醒这是演示素材）：</p>
+<p><img alt="成片抽帧" src="imgs/04.jpeg" /></p>
+<h3>六、Step 4：一键导出抖音 / 小红书 / 淘宝三个规格</h3>
+<pre><code>python scripts/export_platform.py out/demo.mp4 --platform douyin xiaohongshu taobao-main
+python scripts/export_platform.py out/demo.mp4 --safe-preview out/safe.png
+</code></pre>
+<p>实测输出：</p>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>分辨率</th>
+<th>大小</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>douyin</td>
+<td>1080×1920</td>
+<td>4.36 MB</td>
+</tr>
+<tr>
+<td>xiaohongshu</td>
+<td>1080×1440（3:4）</td>
+<td>3.37 MB</td>
+</tr>
+<tr>
+<td>taobao-main</td>
+<td>1080×1080（1:1）</td>
+<td>2.59 MB</td>
+</tr>
+</tbody>
+</table>
+<p>比例不同时默认模糊填充（<code>--mode blur</code>），也可以 <code>--mode crop</code> 裁切。<code>--safe-preview</code> 会在一帧上叠出容易被遮挡的区域（顶部状态栏、右侧按钮、底部文案/商品卡），用来检查字幕有没有压到 UI——这是经验值，脚本自己也提示最终以真机为准：</p>
+<p><img alt="安全区预览" src="imgs/05.jpeg" /></p>
+<h3>七、Step 5：封面 A/B</h3>
+<pre><code>python scripts/cover_ab.py out/demo.mp4 --images build/still00.png build/still02.png \
+  --titles "通勤水杯怎么选？|一张随手拍做的带货视频"
+</code></pre>
+<p><code>--images</code> 用的是渲染过程中留下的干净底图（不带字幕），新标题叠上去不会和原字幕打架：</p>
+<p><img alt="封面 A/B 对比图" src="imgs/06.jpeg" /></p>
+<h3>八、踩坑与建议</h3>
+<ol>
+<li><strong>第一次生成的结尾卡有两个按钮</strong> ：我一开始给 <code>make_cards.py</code> 也传了 <code>--cta</code>，和 storyboard 里的 <code>cta</code> 叠在一起。去掉其中一个即可——这也说明渲染完一定要抽帧看一眼（skill 的检查清单里就有这一步）。</li>
+<li><strong>只有一张图时</strong> ，开场用 <code>fit: cover</code> + <code>punch</code> 做冲击，中间穿插 <code>fit: blur</code> 的完整画面，节奏不会单调。</li>
+<li><strong>卖点只写能证明的</strong> 。照片能看到的就能说；保温时长这类数据，没测过就别进口播。</li>
+<li>有真实视频模型（Seedance / 可灵 / Veo / Runway / 海螺 / 万相…）时，用 <code>image-to-video-shots</code> / <code>multi-model-shot-prompts</code> 出镜头提示词，生成的片段用 <code>video</code> + <code>start</code> 字段替换图片；没生成好的镜头，Ken Burns 兜底照样能出片。</li>
+<li>做出海：每镜加 <code>line_en / sub_en</code>，<code>--lang en --voice en-US-AndrewNeural</code> 就能渲染英文版；<code>multilingual-dubbing</code> 里还列了印尼、泰国、越南、日韩、墨西哥、巴西等市场的 edge-tts 音色。</li>
+</ol>
+<h3>九、12 个 Skill 一览</h3>
+<table>
+<thead>
+<tr>
+<th>Skill</th>
+<th>做什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>hook-3s-script</td>
+<td>3 秒钩子，9 种类型，一次 6–10 版，广告法自检</td>
+</tr>
+<tr>
+<td>selling-point-storyboard</td>
+<td>15/30/60 秒分镜，直接输出 storyboard.json</td>
+</tr>
+<tr>
+<td>image-to-video-shots</td>
+<td>商品图 → 图生视频镜头提示词 + 商品一致性锁 + 本地兜底</td>
+</tr>
+<tr>
+<td>multi-model-shot-prompts</td>
+<td>同一份分镜适配不同视频模型，不编造价格/参数</td>
+</tr>
+<tr>
+<td>ai-voiceover-edge-tts</td>
+<td>edge-tts 逐句配音、去静音、缓存</td>
+</tr>
+<tr>
+<td>subtitles-and-text-effects</td>
+<td>ASS 字幕 / 花字 / 贴纸 / CTA 四种样式 + 安全区</td>
+</tr>
+<tr>
+<td>ffmpeg-auto-assemble</td>
+<td>一条命令出片</td>
+</tr>
+<tr>
+<td>platform-spec-export</td>
+<td>抖音 / TikTok Shop / 视频号 / 小红书 / 淘宝 / Amazon 规格导出</td>
+</tr>
+<tr>
+<td>live-stream-clips</td>
+<td>直播录像切 9:16 高光</td>
+</tr>
+<tr>
+<td>unboxing-comparison-review</td>
+<td>开箱 / 对比评测模板 + 公平对比规则</td>
+</tr>
+<tr>
+<td>multilingual-dubbing</td>
+<td>多语言本地化配音</td>
+</tr>
+<tr>
+<td>cover-title-ab</td>
+<td>封面与标题 A/B</td>
+</tr>
+</tbody>
+</table>
+<h3>十、写在最后</h3>
+<p>这套 skill 解决的是带货视频里「重复、确定」的那部分：分镜写成 JSON，剪辑交给 ffmpeg，规格和安全区交给脚本。卖点真不真、成片好不好看，还是要人来把关。</p>
+<p>演示商品「AURA」是 AI 生成的虚构商品（素材来自姊妹仓库 <a href="https://github.com/xianyu110/ecommerce-image-skills?utm_source=csdn&amp;utm_medium=article&amp;utm_campaign=ecommerce-video-skills&amp;utm_content=sister-repo">ecommerce-image-skills</a>），配音为 edge-tts 合成。平台规格经常变化，上传前以各平台后台说明为准。</p>
+<p>觉得有用的话，欢迎去点个 ⭐：</p>
+<p>👉 <strong>https://github.com/xianyu110/ecommerce-video-skills?utm_source=csdn &amp;utm_medium=article&amp;utm_campaign=ecommerce-video-skills&amp;utm_content=footer</strong></p>
+<p>商品图还没做？可以先用 <a href="https://gptimage2.asia/?utm_source=csdn&amp;utm_medium=article&amp;utm_campaign=ecommerce-video-skills&amp;utm_content=footer-image">gptimage2.asia</a> 在线生成主图和场景图，再交给本仓库转成视频。</p>
+<footer>镜像自 CSDN @xianyu120 · 内容以原文为准</footer>
+</article></div></body></html>

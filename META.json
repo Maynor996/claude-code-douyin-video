@@ -1,0 +1,9 @@
+{
+  "slug": "claude-code-douyin-video",
+  "title": "只用 1 张随手拍，在 Claude Code 里做出 15 秒抖音带货视频（配音 + 字幕花字 + BGM，本地出片）",
+  "csdn": "https://blog.csdn.net/xianyu120/article/details/167125686",
+  "pages": "https://maynor996.github.io/claude-code-douyin-video/",
+  "source": "scrape",
+  "imgs": 6,
+  "workdir": "/workspace/csdn-mirror/build/claude-code-douyin-video"
+}
